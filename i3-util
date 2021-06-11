@@ -1,0 +1,185 @@
+#!/bin/bash
+
+function startup-config(){
+  init-trackpad
+}
+
+function init-trackpad() {
+  id=$(xinput --list | grep TouchPad | grep -oE "id=[0-9]*" | grep -oE "[0-9]*")
+  xinput --set-prop "$id" "libinput Natural Scrolling Enabled" 1
+  xinput --set-prop "$id" "libinput Tapping Enabled" 1
+}
+
+function apply-arandr-conf() {
+  xrandr --output DisplayPort-0 --mode 1920x1200 --pos 1200x0 --rotate left --output HDMI-A-0 --primary --mode 1920x1200 --pos 0x0 --rotate right --output DisplayPort-1 --off
+}
+
+function jbl-go-watchdog() {
+  pgrep -f "python3.*jbl-go-watchdog" || python3 ~/.config/i3/jbl-go-watchdog.py
+}
+
+function xset-watchdog() {
+  pgrep -f xset-watchdog | xargs kill
+  while true; do
+    xset s 90000 && xset dpms 0 0 120000 && xset r rate 220 70
+    sleep 60  
+  done
+}
+
+function print-monitors() {
+  xrandr | grep " connected" | awk '{ print $1 }'
+}
+
+function get-brightness() {
+  xrandr --current --verbose | grep -i brightness | sed 's/\s.*Brightness://' | head -n1
+}
+
+function init-tablet() {
+  pad=$(xsetwacom --list devices | grep PAD | grep -oE "id: [0-9]*" | grep -Eo "[0-9]*")
+  stylus=$(xsetwacom --list devices | grep STYLUS | grep -oE "id: [0-9]*" | grep -Eo "[0-9]*")
+  xsetwacom --set "$stylus" Rotate cw
+  xsetwacom --set "$stylus" MapToOutput 1200x1920+0+0
+  xsetwacom --set "$pad" button 3 "key ctrl z"
+  xsetwacom --set "$pad" button 2 "key button 3"
+}
+
+function change-brightness(){
+  delta=$1
+  current=$(get-brightness) && \
+  target=$(python3 -c "x=$current+$delta;print(float(1.0 if x > 1.0 else 0.0 if x < 0 else x))")
+  echo "Current brightness: $current, delta: $delta, target: $target"
+  print-monitors | xargs -n1 -IMONITOR xrandr --output MONITOR --brightness "$target"
+}
+
+function i3status-rs-cpu-temp() {
+  fan=$(cat /sys/class/hwmon/hwmon2/fan2_input)
+  tmp=$(cat /sys/class/hwmon/hwmon2/temp7_input | awk '{printf("%.1f\n",$1/1000)'})
+  echo "{\"icon\":\"thermometer\",\"text\":\"$tmp $fan RPM\"}"
+}
+
+function i3status-rs-kb-layout() {
+  name=$(xkb-switch | cut -c1-2)
+  echo "{\"icon\":\"keyboard\",\"text\":\" ${name^^}\"}"
+}
+
+function change-kb-layout() {
+  setxkbmap -layout 'us,am,ru,pl' -variant ',phonetic,phonetic_winkeys,' && \
+  xkb-switch -l | rofi -dmenu -font "Jetbrains Mono 12" -theme solarized | xargs xkb-switch -s && \
+    kill -SIGUSR1 "$(pgrep i3status-rs)"
+}
+
+function with-focus() {
+  current_id=$(i3-msg -t get_tree | jq --raw-output '.. | objects | select(.focused == true) | .id')
+  "$@"
+  i3 "[con_id=""$current_id""]" focus
+}
+
+# If the workspace containing the current window is singleton on current display
+# then create a new workspace and move the current window to there
+# Otherwise move current window to the next / prev workspace
+function focus-workspace() {
+  maybe-create-workspace || with-focus i3 move window to workspace "$1"
+}
+
+function maybe-create-workspace() {
+  is-current-display-singleton && move-to-new-workspace
+}
+
+function current-display() {
+  i3-msg -t get_tree | jq --raw-output '.. | objects | select(.focused == true) | .output'
+}
+
+function is-current-display-singleton(){
+  count=$(i3-msg -t get_workspaces | jq "[.[] | .output | select (. == \"$(current-display)\")] | length")
+  [[ "1" -eq "$count" ]]
+}
+
+function move-to-new-workspace() {
+  ws=$(($(i3-msg -t get_workspaces | tr , '\n' | grep '"num":' | cut -d : -f 2 | sort -rn | head -1) + 1))
+  with-focus bash -c "i3 move window to workspace $ws"
+}
+
+function pacmd-to-json(){
+  py_source=$(cat <<EOF
+import re, json, fileinput
+data=[]
+obj={}
+for line in fileinput.input():
+  line = re.sub('([\s+]|"|\n)', '', line)  
+  if "index:" in line:
+    if len(obj) > 0:
+      data += [obj]
+    obj = {"index": line.split(":")[1]}
+    continue
+  sp = line.split(":")
+  if len(sp) == 2:
+    obj[sp[0].replace(".", "_")] = sp[1]
+  else:
+    sp = line.split("=")
+    if (len(sp) == 2):
+      obj[sp[0].replace(".", "_")] = sp[1]
+data += [obj]
+print(json.dumps(data)) 
+EOF
+)
+  python3 -c "$py_source"
+}
+
+function set_output() {
+  sink=$1
+  echo "Setting to $sink"
+  pacmd set-default-sink ${sink}
+}
+
+function switch-audio-out(){
+  index=$(pacmd list-sinks |\
+   pacmd-to-json |\
+   jq -cr '.[] | "\(.device_description) \(.index)"' |\
+   rofi -dmenu -font "Jetbrains Mono 12" -theme solarized |\
+   grep -Eo "[0-9]+$")
+  set_output "$index"
+}
+
+function toggle-microphone() {
+  index=$(pacmd list-cards |\
+    i3-util pacmd-to-json |\
+    jq -cr '.[] | "\(.device_description) \(.index)"' |\
+    rofi -dmenu -font "Jetbrains Mono 12" -theme solarized |\
+    grep -Eo "[0-9]+$")
+  profile=$(printf "Headset Head Unit (headset_head_unit)\nHigh Fidelity Playback (a2dp_sink)\n" |\
+    rofi -dmenu -font "Jetbrains Mono 12" -theme solarized |\
+    sed 's/.*(\(.*\))/\1/')
+  echo "$index $profile"
+  pacmd set-card-profile "$index" "$profile"
+}
+
+function restart-kbct() {
+  cat /home/gor/.config/i3/.paswd | base64 -d | sudo -S systemctl restart kbct.service
+}
+
+function start-kbct() {
+  sudo /home/gor/.local/bin/kbct remap --config /home/gor/.config/kbct.yaml
+}
+
+function span-both-displays() {
+  i3-msg floating enable && \
+  i3-msg move position 0 0 && \
+  i3-msg resize set 2400 1890
+}
+
+function floating-terminal-show(){
+  OK=$(i3 '[instance="terminal_scratchpad"]' scratchpad show, move position center | tail -n1 | jq -c ".[0] | .success")
+
+  if [[ "$OK" == "false" ]]; then
+    wezterm start --class terminal_scratchpad
+    OK=$(i3 '[instance="terminal_scratchpad"]' scratchpad show, move position center | tail -n1 | jq -c ".[0] | .success")
+  fi
+}
+
+
+
+
+func=$1
+shift
+"$func" "$@"
+

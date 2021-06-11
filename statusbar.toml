@@ -1,0 +1,59 @@
+
+
+[[block]]
+block = "music"
+player = "chromium"
+hide_when_empty = true
+marquee_interval = 200
+marquee_speed = 1
+dynamic_width = false
+max_width = 50
+
+[[block]]
+block = "weather"
+format = "{location} {weather} {temp} {wind_kmh} km/h {direction}"
+service = { name = "openweathermap", api_key = "43ba70f40d61b918c44be76abbdcd0c9", city_id = "756135", units = "metric" }
+
+
+[[block]]
+block = "sound"
+
+
+[[block]]
+block="custom"
+json=true
+command = ''' i3-util i3status-rs-kb-layout '''
+
+[[block]]
+block = "time"
+interval = 60
+format = "%a %d/%m %R"
+
+[[block]]
+block = "memory"
+format_mem = "{mem_used}/{mem_total}({mem_used_percents})"
+format_swap = "{swap_used}/{swap_total}({swap_used_percents})"
+display_type = "memory"
+icons = true
+clickable = true
+interval = 5
+warning_mem = 80
+warning_swap = 80
+critical_mem = 95
+critical_swap = 95
+
+[[block]]
+block = "cpu"
+interval = 1
+
+[[block]]
+block = "load"
+interval = 1
+format = "{1m}"
+
+
+[[block]]
+block = "time"
+interval = 60
+format = "%a %d/%m %R"
+
