@@ -3,10 +3,10 @@ set $mod Mod4
 exec_always --no-startup-id i3-util startup-config
 
 # Configure tiling manage
-exec_always --no-startup-id /home/gor/src/i3-alternating-layout/alternating_layouts.py
+exec_always --no-startup-id /home/gstepanyan/.config/i3/alternating_layouts.py
 
 # Configure desktop background image
-exec_always --no-startup-id nitrogen --set-zoom-fill /home/gor/.config/i3/background.jpg
+exec_always --no-startup-id nitrogen --set-zoom-fill /home/gstepanyan/.config/i3/background.jpg
 
 # Keyboard layout
 #exec_always --no-startup-id setxkbmap -layout 'us,am,ru,pl' -variant ',phonetic,phonetic_winkeys,'
@@ -35,13 +35,13 @@ floating_modifier $mod
 
 # Start a terminal
 bindsym $mod+Return exec wezterm
-bindsym $mod+Shift+Return exec chromium
+bindsym $mod+Shift+Return exec google-chrome
 
 # Kill focused window
 bindsym $mod+q kill
 
 # Lock session
-bindsym $mod+Shift+Escape exec i3lock
+bindsym $mod+Shift+Escape exec xkb-switch -s us && i3lock --color=090724
 
 # Configure switchers
 bindsym $mod+d exec rofi -combi-modi window#drun -show combi -modi combi -font "Jetbrains Mono 12" -theme solarized -show-icons
@@ -139,7 +139,7 @@ bindsym $mod+Mod1+l resize grow width 2 px or 2 ppt
 bindsym $mod+Shift+period exec i3-util change-brightness 0.1
 bindsym $mod+Shift+comma exec i3-util change-brightness -0.1
 bindsym $mod+m exec curl 192.168.0.94/toggle # Toggle desktop light
-bindsym Print exec bash -c "maim -s | xclip -selection clipboard -t image/png"
+bindsym $mod+Print exec bash -c "maim -s | xclip -selection clipboard -t image/png"
 bindsym $mod+Control+v exec rofi -modi "clipboard:greenclip print" -font "Jetbrains Mono 12" -theme solarized -show clipboard -run-command '{cmd}'
 bindsym $mod+Shift+g exec i3-util change-kb-layout
 bindsym $mod+slash exec i3-util switch-audio-out

@@ -2,10 +2,21 @@
 
 function startup-config(){
   init-trackpad
+  init-compton
+  init-screen-saver-config
+}
+
+function init-screen-saver-config() {
+  xset s off
+  xset -dpms
+}
+
+function init-compton() {
+  compton --config ~/.config/compton.conf -b
 }
 
 function init-trackpad() {
-  id=$(xinput --list | grep TouchPad | grep -oE "id=[0-9]*" | grep -oE "[0-9]*")
+  id=$(xinput --list | grep Touchpad | grep -oE "id=[0-9]*" | grep -oE "[0-9]*")
   xinput --set-prop "$id" "libinput Natural Scrolling Enabled" 1
   xinput --set-prop "$id" "libinput Tapping Enabled" 1
 }

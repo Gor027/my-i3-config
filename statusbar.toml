@@ -1,4 +1,12 @@
 
+icons = "material"
+
+[theme]
+name = "slick"
+[theme.overrides]
+idle_bg = "#123456"
+idle_fg = "#abcdef"
+separator = "  "
 
 [[block]]
 block = "music"
@@ -25,9 +33,19 @@ json=true
 command = ''' i3-util i3status-rs-kb-layout '''
 
 [[block]]
-block = "time"
-interval = 60
-format = "%a %d/%m %R"
+block = "disk_space"
+path = "/"
+info_type = "used"
+format = "{icon} {used}/{total} ({available} free)"
+alert_absolute = true
+unit = "GB"
+alert = 150
+warning = 120
+
+[[block]]
+block = "battery"
+interval = 10
+format = "{percentage:6#100} {percentage} {time}"
 
 [[block]]
 block = "memory"
