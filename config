@@ -68,6 +68,13 @@ bindsym $mod+Shift+Control+i exec i3-util focus-workspace prev_on_output
 bindsym $mod+Shift+Control+l exec i3-util with-focus i3 move window to output right
 bindsym $mod+Shift+Control+j exec i3-util with-focus i3 move window to output left
 
+# Move workspace to monitor
+bindsym $mod+Shift+Control+Up move workspace to output up
+bindsym $mod+Shift+Control+Down move workspace to output down
+bindsym $mod+Shift+Control+Left move workspace to output left
+bindsym $mod+Shift+Control+Right move workspace to output right
+
+# Move inbetween workspaces on same monitor
 bindsym $mod+Control+k workspace next_on_output
 bindsym $mod+Control+i workspace prev_on_output
 
@@ -175,7 +182,7 @@ gaps inner 2
 bar {
     font pango: Ubuntu Condensed, Material Icons 13
     position bottom
-    status_command i3status-rs ~/.config/i3/statusbar.toml
+    status_command ~/src/i3status-rust/target/debug/i3status-rs ~/.config/i3/statusbar.toml
     colors {
         separator #666666
         background #222222

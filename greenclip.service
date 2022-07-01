@@ -1,0 +1,8 @@
+[Unit]
+Description=Clipboard manager
+[Service]
+Type=simple
+User=sme
+ExecStart=/usr/local/bin/greenclip daemon
+[Install]
+WantedBy=multi-user.target
